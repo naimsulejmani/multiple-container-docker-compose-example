@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  postgres:
+    build:
+      context: ./postgres-db
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password
+      POSTGRES_DB: todo_db
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_USER: todo_user
+      DB_PASSWORD: todo_password
+      DB_HOST: postgres
+      DB_NAME: todo_db
+      DB_PORT: 5432
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://backend:3000/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: python3 -m http.server 80
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
