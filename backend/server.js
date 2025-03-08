@@ -6,7 +6,9 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(cors({
+    origin: '*'
+}));
 
 const client = new Client({
     user: process.env.DB_USER,

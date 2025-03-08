@@ -1,4 +1,4 @@
-fetch('http://backend:3000/todos')
+fetch('http://localhost:3000/todos')
     .then(response => response.json())
     .then(todos => {
         const todoList = document.getElementById('todo-list');
