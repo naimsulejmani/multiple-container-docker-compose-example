@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    # depends_on:
+    #   db: # This will not work locally, but helpful for docker swarm.
+    environment:
+      DB_USER: todo_user
+      DB_PASSWORD: todo_password
+      DB_HOST: db
+      DB_NAME: todo_db
+      DB_PORT: 5432
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://backend:3000/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: python3 -m http.server 80
+    networks:
+      - shared-network
+networks:
+  shared-network:
+    driver: bridge

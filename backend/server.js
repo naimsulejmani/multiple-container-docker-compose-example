@@ -1,5 +1,5 @@
 const express = require('express');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -10,7 +10,7 @@ app.use(cors({
     origin: '*'
 }));
 
-const client = new Client({
+const pool = new Pool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     host: process.env.DB_HOST,
@@ -18,22 +18,23 @@ const client = new Client({
     port: process.env.DB_PORT,
 });
 
-const connectWithRetry = () => {
-    client.connect(err => {
-        if (err) {
-            console.error('Failed to connect to database, retrying in 5 seconds...', err);
-            setTimeout(connectWithRetry, 5000);
-        } else {
-            console.log('Connected to database');
-        }
-    });
+// Check pool connectivity and retry if necessary
+const checkPoolConnection = async () => {
+    try {
+        const client = await pool.connect();
+        client.release();
+        console.log("Connected to database using pool");
+    } catch (err) {
+        console.error("Failed to connect to database, retrying in 5 seconds...", err);
+        setTimeout(checkPoolConnection, 5000);
+    }
 };
 
-connectWithRetry();
+checkPoolConnection();
 
 app.get('/todos', async (req, res) => {
     try {
-        const result = await client.query('SELECT * FROM todos');
+        const result = await pool.query('SELECT * FROM todos');
         res.json(result.rows);
     } catch (err) {
         console.error(err);
